@@ -2,8 +2,8 @@
 
 We're given a [reverse.apk](./reverse.apk) file, which when installed opens up a screen where we can enter a key and it would show whether the key is correct or not.
 
-The first thing one would do with any apk is JADX, and voila, it gives error XD! LMAO! And not just 1 error - 3 errors like whoa!
-And yet, the apk runs nicely! Must be some issue with JADX since it is not maintained right? XD!
+The first thing one would do with any apk is JADX, and, it gives 3 errors!!
+And yet, the apk runs nicely! What's going on? Must be some issue with JADX since it is not maintained right :P
 
 ```java
 /*  JADX ERROR: NullPointerException in pass: ExtractFieldInit
@@ -36,13 +36,13 @@ public class C0000 extends Activity {
                 jadx.core.utils.exceptions.DecodeException: Load method exception: Not class type: long in method: com.google.ctf.sandbox.ￅﾑ.1.onClick(android.view.View):void, dex: classes.dex
 ```
 
-This didn't make any sense to me, so I resorted to reading the smali next! (Smali can be obtained by using apktool)
+This didn't make any sense to me, so I resorted to reading the [smali](https://github.com/JesusFreke/smali) next! (Smali can be obtained by using [apktool](https://ibotpeaches.github.io/Apktool/))
 
 First of all, we note from the AndroidManifest that the app loads in the activity named `com.google.ctf.sandbox.ő`. It so appears that apktool can't work very nicely with non-ASCII characters, so first of all let's rename the `ő` everywhere to `o`, and now atleast apktool can happily build the apk.
 
 Yeah, we all know smali is kind-of assembly for Dalvik VMs, however, note that it has lot of instructions compared to x86, I referred to [opcodes](http://pallergabor.uw.hu/androidblog/dalvik_opcodes.html) to understand what each instruction did.
 
-[Registers](https://github.com/JesusFreke/smali/wiki/Registers) & [Types,Methods,Fields](https://github.com/JesusFreke/smali/wiki/TypesMethodsAndFields) proved to be very useful in the understanding of the smali as well!
+[Registers](https://github.com/JesusFreke/smali/wiki/Registers) & [Types,Methods,Fields](https://github.com/JesusFreke/smali/wiki/TypesMethodsAndFields) proved to be very useful in the understanding of the smali too!!
 
 ## Step 1 :
 What next? Let's head on to the renamed main activity(`com.google.ctf.sandbox.o`) :
@@ -61,7 +61,7 @@ The references tell us that the types are as follows -
 
 So the thing here is that `class` is a field of the Java class `o`, and is an array of long integers, the first `o` is an integer, and the second `o` is again an array of long integers.
 
-Heading on to the constructor now,
+Heading on to the constructor now -
 
 ```
 # direct methods
@@ -127,7 +127,7 @@ Heading on to the constructor now,
 We'd also need to check a bit about passing arguments, again the smali-wiki is quite helpful
 ![](args.png)
 
-To this constructor, the first argument which is an implicit `this` argument, is passed and hence, is stored in the first parameter register - the parameter registers are numbered as `p0,p1...` - here `p0` contains this, and then we invoke the constructor of its `super`-class, and so on!
+To this constructor, the first argument which is an implicit `this` argument, is passed and hence, is stored in the first parameter register - the parameter registers are numbered as `p0, p1 ...` - here `p0` contains this, and then we invoke the constructor of its `super`-class, and so on!
 
 However, what really caught my eye is the try-catch block! Does it even make sense - You try to catch an exception between `try_start_0` to `try_end_0` - and if you do catch an exception, you goto `catch_0` which again leads to `try_start_0` - what the heck!
 
@@ -135,11 +135,12 @@ However, what really caught my eye is the try-catch block! Does it even make sen
     :catch_0
     :try_start_0
 
-    ...
+    ... //lots of code
 
     :try_end_0
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
     .catch Ljava/lang/Error; {:try_start_0 .. :try_end_0} :catch_0
+    .catch I {:try_start_0 .. :try_end_0} :catch_0
 ```
 
 Probably, no exception was generated here - which would mean no such infinite loop thing - so let's try removing this try-catch thing altogether, and see if the app runs properly now?
@@ -169,17 +170,18 @@ public class o extends Activity {
                 jadx.core.utils.exceptions.DecodeException: Load method exception: Not class type: long in method: com.google.ctf.sandbox.o.1.onClick(android.view.View):void, dex: classes.dex
 ```
 
-Well well well, though one of the errors didn't go away, the others sure did, and we got the initializing data for the `class(or f0class)` field as well! But does the app run?
+Though one of the errors didn't go away, the others sure did, and we got the initializing data for the `class(or f0class)` field as well! But does the app run?
 
 `Note - Only signed APKs would run on phone, so sign the apk with something like jarsigner etc`
 
-Well, it sure does, and with no difference what-so-ever!!!! Note that this apk is [reverse_1](reverse_1.apk)
+It sure does, and with no difference what-so-ever!!!! Note that this apk is [reverse_1](reverse_1.apk)
 
-![](step_1.jpg)
-
+<p align="center">
+<img src="step_1.jpg" width="200" height="300" />
+</p>
 
 ## Step 2
-Cool, but now what? Notice that the error pops up in `setOnClickListener` of button in `onCreate` method of `o` - and also note that the error is in `com.google.ctf.sandbox.o.1.onClick` - whoa - the closest meaning I can take is `o$1.smali`, it probably calls in code from there?
+Cool, but now what? Notice that the error pops up in `setOnClickListener` of button in `onCreate` method of `o` - and also note that the error is in `com.google.ctf.sandbox.o.1.onClick` - the closest meaning I can take is `o$1.smali`, it probably calls in code from there?
 
 Heading there now!
 
@@ -198,7 +200,7 @@ Again, the `init`(constructor) & the `onClick` - this is where the main executio
 
 I tried to follow the path of execution - we encounter a "goto_0" which takes us to an initialization thing and then to "goto_1" which looks like a loop, then there is a "cond_0" and then at that point it takes the textview and sets its text to something in unicode, which actually are emojis - one is flag, and another is cross(wrong).
 
-And then, a try-catch again! Well, why don't I just go ahead and remove it? Let's do that!
+And then, a try-catch again! Why don't I just go ahead and remove it? Let's do that!
 
 ```
     if-eqz v5, :cond_1
@@ -225,7 +227,7 @@ And then, a try-catch again! Well, why don't I just go ahead and remove it? Let'
     .catch J {:try_start_0 .. :try_end_0} :catch_0
 ```
 
-Well, let's check again then! JADX still reports an error! Okay, some different error this time, and the method `onClick` has a lot of register shit as well.
+Let's check again then! JADX still reports an error! Some different error this time, and the method `onClick` has a lot of register shit as well.
 
 ```java
         final TextView textView = (TextView) findViewById(R.id.textView);
@@ -242,11 +244,14 @@ Well, let's check again then! JADX still reports an error! Okay, some different 
 
 ```
 
-Well again, does the [reverse_2](reverse_2.apk) run? It doesn't!
+And again, does the [reverse_2](reverse_2.apk) run? It doesn't!
 
-![](step_2.jpg)
-
-![](https://i.imgflip.com/2hwufo.jpg)
+<p align="center">
+<img src="step_2.jpg" width="300" height="300" />
+</p>
+<p align="center">
+<img src="https://i.imgflip.com/2hwufo.jpg" width="400"/>
+</p>
 
 ## Step 3
 
@@ -271,7 +276,7 @@ And then I realized after reading some opcodes - `check-cast` raises a `ClassCas
 Ohhh boy! Ahh, this was inside the try-catch! But can I rectify this now? Note that as observable from the error itself, `v9` must be of `java.lang.Integer` type, and a few lines down, I am trying to obtain its corresponding ASCII character probably. Searching for integer to character conversion, in 'smali', we come across the right opcode -
 
 ```
-int-to-char vx,vy ->
+int-to-char vx, vy ->
 Converts the int value in vy to a char value and stores it in vx.
 ```
 
@@ -290,16 +295,16 @@ Using the above methods, the smali can now be edited to avoid the error -
 
     move-result v9
 
-    int-to-char v9,v9
+    int-to-char v9, v9
 ```
 
 Again, the usual thing - apktool, JADX, and finally sign and run. (reverse_3)(reverse_3.apk)
 
-Well, JADX gives the same error again! However, this time the app runs nicely, same as before!
+JADX gives the same error again! However, this time the app runs nicely, same as before!
 
 ## Step 4
 
-Umm so maybe I can print the key-string this time? It could lead to something?
+Maybe I can print the key-string this time? It could lead to something?
 
 ```
     .line 50
@@ -340,14 +345,24 @@ Umm so maybe I can print the key-string this time? It could lead to something?
 
 Okay, so `v3` is converted to a String from a StringBuilder, and then tested with the input probably, which is in `v5`; and accordingly the text in the textview is set. I'll rather ask it to print the keyString itself :)
 
-So we remove the condition line - `if-eqz v5, :cond_1` as well as the line which sets the thing - `const-string v6, "\ud83d\udea9"`, this character is actually the flag character.
+So we remove the condition line - `if-eqz v5, :cond_1` as well as the line which sets the thing - `const-string v6, "\ud83d\udea9"`, this character is actually the flag character; while the other one in - `const-string v6, "\u274c"` is the cross character, as can be seen in the following images obtained from [Unicode-converter](https://www.online-toolz.com/tools/text-unicode-entities-convertor.php) -
+
+<p align="center">
+<img src="flag.png" width="300" height="300" />
+<img src="cross.png" width="300" height="300" />
+</p>
 
 Apktool, JADX & run again!
 Nah, JADX still does the same. But when we click Check, we should get something right?
 
-![](step_4.jpg)
+<p align="center">
+<img src="step_4.jpg" width="200" height="300" />
+</p>
 
-Ohhhh boi!! ![](https://i.kym-cdn.com/entries/icons/facebook/000/030/043/cover2.jpg)
+Ohhhh boi!! 
+<p align="center">
+<img src="https://i.kym-cdn.com/entries/icons/facebook/000/030/043/cover2.jpg" width="400"/>
+</p>
 
 So that wasn't the flag? All my life has been a lie!
 
@@ -417,7 +432,7 @@ The data is re-initialized, the execution begins from `goto_3` - which is after 
     :catch_0
 ```
 
-Oh well, there's another try-catch at the bottom, might as well remove that?
+Oh there's another try-catch at the bottom, might as well remove that?
 
 ```
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
@@ -431,7 +446,7 @@ INFO  - processing ...
 INFO  - done
 ```
 
-Whoa - JADX gave no errors!!!!!!!! We might as well just read the Java code then :)
+JADX gave no errors!!!! Let's just read the Java code then :)
 
 ```java
         long[] f1o = new long[12];
@@ -489,7 +504,7 @@ First check is whether the `flagString` is 48 characters long. Then, there is so
 
 This thrown exception, as we can see above, was catched by `catch_0`, and since `o.this.o` has been incremented, it would probably go back up again, and so the same check would be done for other input values as well, thus, this try-catch, which we just removed, was a loop!
 
-Well, but how is this check happening, we see a call to an `R.o` function! Let's read that up?
+But how is this check happening, we see a call to an `R.o` function! Let's read that up?
 
 ```java
     // in R.java
@@ -502,7 +517,7 @@ Well, but how is this check happening, we see a call to an `R.o` function! Let's
     }
 ```
 
-Well, this looks like a function which solves `a*x + b*y = gcd(a,b)` for `x` & `y`, given `a` & `b`, where `b` has been fixed to be `4294967296L`, and `x` is computed, based on given `a`, and is tested whether it's equal to the data in the array `f0class` at the proper position. If this check succeeds for the whole array, a flag is shown, else a cross is shown in the TextView.
+This looks like a function which solves `a*x + b*y = gcd(a,b)` for `x` & `y`, given `a` & `b`, where `b` has been fixed to be `4294967296L`, and `x` is computed, based on given `a`, and is tested whether it's equal to the data in the array `f0class` at the proper position. If this check succeeds for the whole array, a flag is shown, else a cross is shown in the TextView.
 
 ```java
     long[] f0class = {40999019, 2789358025L, 656272715, 18374979, 3237618335L, 1762529471, 685548119, 382114257, 1436905469, 2126016673, 3318315423L, 797150821};
@@ -544,4 +559,8 @@ And we obtain `s`, our flag, as - `CTF{y0u_c4n_k3ep_y0u?_m4gic_1_h4Ue_laser_b3am
 
 Putting this in the original [reverse.apk](reverse.apk), we obtain the flag -
 
-![](finally.jpg)
+<p align="center">
+<img src="finally.jpg" width="200" height="300" />
+</p>
+
+This was a really good reversing challenge - the apk was surely custom made to not allow straight away decompilation, and then so many try-catches causing issues and a wrong track on the way tooo!! Overall, an awesome challenge in my opinion.
