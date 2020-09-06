@@ -40,7 +40,7 @@ This didn't make any sense to me, so I resorted to reading the [smali](https://g
 
 First of all, we note from the AndroidManifest that the app loads in the activity named `com.google.ctf.sandbox.ő`. It so appears that apktool can't work very nicely with non-ASCII characters, so first of all let's rename the `ő` everywhere to `o`, and now atleast apktool can happily build the apk.
 
-Yeah, we all know smali is kind-of assembly for Dalvik VMs, however, note that it has lot of instructions compared to x86, I referred to [opcodes](http://pallergabor.uw.hu/androidblog/dalvik_opcodes.html) to understand what each instruction did.
+We all know smali is kind-of assembly for Dalvik VMs, however, note that it has lot of instructions compared to x86, I referred to [opcodes](http://pallergabor.uw.hu/androidblog/dalvik_opcodes.html) to understand what each instruction did.
 
 [Registers](https://github.com/JesusFreke/smali/wiki/Registers) & [Types,Methods,Fields](https://github.com/JesusFreke/smali/wiki/TypesMethodsAndFields) proved to be very useful in the understanding of the smali too!!
 
@@ -273,7 +273,7 @@ And then I realized after reading some opcodes - `check-cast` raises a `ClassCas
 
 ![](cast.png)
 
-Ohhh boy! Ahh, this was inside the try-catch! But can I rectify this now? Note that as observable from the error itself, `v9` must be of `java.lang.Integer` type, and a few lines down, I am trying to obtain its corresponding ASCII character probably. Searching for integer to character conversion, in 'smali', we come across the right opcode -
+Damn! This was inside the try-catch, causing us issues! But can I rectify this now? Note that as observable from the error itself, `v9` must be of `java.lang.Integer` type, and a few lines down, I am trying to obtain its corresponding ASCII character probably. Searching for integer to character conversion, in 'smali', we come across the right opcode -
 
 ```
 int-to-char vx, vy ->
@@ -359,7 +359,7 @@ Nah, JADX still does the same. But when we click Check, we should get something 
 <img src="step_4.jpg" width="200" height="300" />
 </p>
 
-Ohhhh boi!! 
+Dammit!
 <p align="center">
 <img src="https://i.kym-cdn.com/entries/icons/facebook/000/030/043/cover2.jpg" width="400"/>
 </p>
@@ -432,7 +432,7 @@ The data is re-initialized, the execution begins from `goto_3` - which is after 
     :catch_0
 ```
 
-Oh there's another try-catch at the bottom, might as well remove that?
+There's another try-catch at the bottom, might as well remove that?
 
 ```
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_0
